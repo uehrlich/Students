@@ -4,6 +4,7 @@ import strawberry
 import datetime
 from grades.models import Test
 from grades.models import Student
+import uuid
 
 
 
@@ -11,17 +12,18 @@ from grades.models import Student
 class StudentGQL:
      id : strawberry.ID
      name :str
-     birthDate : datetime.date
+     birthDate : datetime.datetime
      test : list["TestGQL"]
 
      @classmethod
      def from_orm(cls, student: Student) -> StudentGQL:
-        return StudentGQL(
+        return cls(
             id= student.id,
             name= student.name,
             birthDate= student.birth_date,
             test=[TestGQL.from_orm(t) for t in student.test_set.all()]
         )
+
 
 @strawberry.type(name="Test")
 class TestGQL:
@@ -54,12 +56,18 @@ class Query:
 
 @strawberry.type
 class Mutation:
-    @strawberry.field
-    def add_student(self,name:str,birth: datetime.date)->Student:
-        return Student(name= name , birthDate= birth)
-    @strawberry.field
-    def submitTestResults(self, studentID :id, subject:str, grade:int )->Student:
-        return Student(id = studentID , test= TestGQL(subject=subject, grade= grade))
+    @strawberry.mutation
+    def add_student(self,name:str,birth: datetime.date)->StudentGQL:
+        stu = Student(name = name, birth_date = birth )
+        stu.save(force_insert= True)
+        # stu =Student.objects.create(name =name , birth_date = birth)
+        return StudentGQL.from_orm(stu)
+
+    @strawberry.mutation
+    def submitTestResults(self, studentID :int, subject:str, grade:int )->StudentGQL:
+        stu = Student.objects.get(id = studentID)
+        t =Test.objects.filter( subject = subject).filter(student = stu).update(grade = grade)
+        return StudentGQL.from_orm(stu)
     
 
-schema = strawberry.Schema(query=Query)
+schema = strawberry.Schema(query=Query, mutation=Mutation)
