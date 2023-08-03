@@ -58,10 +58,10 @@ class Query:
 class Mutation:
     @strawberry.mutation
     def add_student(self,name:str,birth: datetime.date)->StudentGQL:
-        stu = Student(name = name, birth_date = birth )
-        stu.save(force_insert= True)
+        stud = Student(name = name, birth_date = birth )
+        stud.save(force_insert= True)
         # stu =Student.objects.create(name =name , birth_date = birth)
-        return StudentGQL.from_orm(stu)
+        return StudentGQL.from_orm(stud)
 
     @strawberry.mutation
     def submitTestResults(self, studentID :int, subject:str, grade:int )->StudentGQL:
